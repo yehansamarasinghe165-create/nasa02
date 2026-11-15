@@ -1,7 +1,7 @@
 import { Check } from "lucide-react";
 import { useData, INK } from "../lib/data.js";
 import EChart, { axis } from "../components/EChart.jsx";
-import { Card, Loading } from "../components/ui.jsx";
+import { Card, Loading, SampleBanner } from "../components/ui.jsx";
 
 export function AblationChart({ rows, height = 260 }) {
   if (!rows?.length) return null;
@@ -44,6 +44,7 @@ export default function Data() {
   );
   return (
     <div className="page">
+      <SampleBanner meta={ds.meta} />
       <div className="page-head"><div><h1>Data used</h1><p>Every dataset behind the numbers, and exactly where the app uses it: inside the yield model, in the analysis, or only as a map picture.</p></div></div>
       <Card title="NASA Earth observations"><Table rows={nasa} /></Card>
       <Card title="What each dataset adds to the yield prediction" sub="Paddy yield by district and season. The same models were trained on 2002–2020 with more and more data; the error is how far predictions were from DCS records. The combination is chosen on the 2011–2020 check only; 2021 is a held-out test.">
