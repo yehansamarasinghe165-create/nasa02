@@ -1,0 +1,72 @@
+name: Build and Deploy to Firebase Hosting
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: "web/package-lock.json"
+
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci --no-audit --no-fund
+
+      - name: Configure optional Firebase web environment
+        working-directory: web
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+        run: |
+          : > .env.local
+          for key in VITE_FIREBASE_API_KEY VITE_FIREBASE_AUTH_DOMAIN VITE_FIREBASE_PROJECT_ID VITE_FIREBASE_STORAGE_BUCKET VITE_FIREBASE_MESSAGING_SENDER_ID VITE_FIREBASE_APP_ID; do
+            val="${!key:-}"
+            if [ -n "$val" ]; then
+              printf '%s=%s\n' "$key" "$val" >> .env.local
+            fi
+          done
+
+      - name: Build web app (auto-generates sample data if data/ is absent)
+        working-directory: web
+        run: npm run build
+
+      - name: Verify production bundle
+        run: |
+          test -f web/dist/index.html
+          test -f web/dist/data/national.json
+          test -f web/dist/data/datasets.json
+          test -f web/dist/data/packs/anuradhapura.json
+
+      - name: Deploy to Firebase Hosting
+        if: github.event_name != 'pull_request'
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID || secrets.FIREBASE_PROJECT_ID }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ] || [ -z "$FIREBASE_PROJECT_ID" ]; then
+            {
+              echo "### Firebase Hosting deployment skipped"
+              echo "Set \`FIREBASE_PROJECT_ID\` (variable or secret) and \`FIREBASE_SERVICE_ACCOUNT\` (secret JSON) in GitHub repository settings to enable automatic deploys to \`https://<project-id>.web.app\`."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          SA_FILE="$(mktemp)"
+          trap 'rm -f "$SA_FILE"' EXIT
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$SA_FILE"
+          export GOOGLE_APPLICATION_CREDENTIALS="$SA_FILE"
+          npx --yes firebase-tools deploy --only hosting --project "$FIREBASE_PROJECT_ID" --non-interactive

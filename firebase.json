@@ -2,6 +2,7 @@
   "firestore": { "rules": "firestore.rules" },
   "hosting": {
     "public": "web/dist",
+    "predeploy": ["node scripts/firebase_predeploy.mjs"],
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [{ "source": "**", "destination": "/index.html" }],
     "headers": [{ "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }]

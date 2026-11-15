@@ -220,4 +220,33 @@ const others = [["IND", "India"], ["BGD", "Bangladesh"], ["PAK", "Pakistan"], ["
   }));
 fs.writeFileSync(`${OUT}/outlook.json`, JSON.stringify({ meta, rows: [...lk, ...others] }));
 
+// ---- datasets & ablation summary (sample) ----
+const ablation = [
+  { set: "Yield history only", datasets: [], features: 5, model: "Ridge regression", cv_rmse: 0.514, cv_r2: 0.55, test_maha_rmse: 0.434, test_maha_r2: 0.62, test_yala_rmse: 0.781, test_yala_r2: 0.31 },
+  { set: "+ NASA POWER climate & water balance", datasets: ["NASA POWER"], features: 17, model: "LightGBM", cv_rmse: 0.511, cv_r2: 0.56, test_maha_rmse: 0.462, test_maha_r2: 0.58, test_yala_rmse: 0.764, test_yala_r2: 0.34 },
+  { set: "+ GPM IMERG rain", datasets: ["NASA POWER", "GPM IMERG"], features: 18, model: "LightGBM", cv_rmse: 0.508, cv_r2: 0.57, test_maha_rmse: 0.498, test_maha_r2: 0.52, test_yala_rmse: 0.742, test_yala_r2: 0.37 },
+  { set: "+ MODIS NDVI (mid-season)", datasets: ["NASA POWER", "GPM IMERG", "MODIS NDVI"], features: 19, model: "LightGBM", cv_rmse: 0.496, cv_r2: 0.59, test_maha_rmse: 0.445, test_maha_r2: 0.60, test_yala_rmse: 0.718, test_yala_r2: 0.41 },
+];
+const datasets = {
+  meta,
+  chosenSet: "+ GPM IMERG rain",
+  bestModel: "LightGBM",
+  ablation,
+  datasets: [
+    { name: "NASA POWER", provider: "NASA", what: "Daily temperature, rain, humidity, wind, sunlight", resolution: "~50 km, daily, 1981-2021", inUse: true, usedFor: "Sample mode: placeholder values (real pipeline: yield model input, crop water balance, rain-onset trend, heat days)" },
+    { name: "GPM IMERG (monthly, V07)", provider: "NASA", what: "Satellite rainfall", resolution: "0.1° (~10 km), monthly, 2001-2021", inUse: false, usedFor: "Sample mode: not downloaded yet (real pipeline: yield model comparison and 2021 rain anomaly)" },
+    { name: "MODIS Terra NDVI (MOD13A3)", provider: "NASA", what: "Vegetation greenness", resolution: "1 km, monthly, 2001-2021", inUse: false, usedFor: "Sample mode: not downloaded yet (real pipeline: mid-season forecast and 2021 greenness anomaly)" },
+    { name: "SMAP L4 root-zone soil moisture", provider: "NASA", what: "Soil water in the root zone", resolution: "9 km, 3-hourly, 2015-2021", inUse: false, usedFor: "Sample mode: not downloaded yet (real pipeline: 2021 soil-moisture anomaly)" },
+    { name: "SRTM elevation (SRTMGL1)", provider: "NASA", what: "Elevation", resolution: "30 m", inUse: false, usedFor: "Sample mode: placeholder slope (real pipeline: district slope for erosion risk)" },
+    { name: "MODIS land surface temperature, true colour", provider: "NASA", what: "Map pictures", resolution: "1 km, daily", inUse: true, usedFor: "Map picture layers only (NASA GIBS)" },
+    { name: "SoilGrids 2.0", provider: "ISRIC", what: "Soil pH, organic carbon, nitrogen, texture", resolution: "250 m", inUse: false, usedFor: "Sample mode: placeholder soil values (real pipeline: pH warnings and starting soil N)" },
+    { name: "Open-Meteo seasonal forecast and CMIP6 projections", provider: "ECMWF / CMIP6 via Open-Meteo", what: "Next 3 months' rain; 2040s rain and temperature change", resolution: "~25 km", inUse: true, usedFor: "Live 14-day forecast and town search in the browser; sample seasonal/2040s outlook" },
+    { name: "DCS paddy statistics", provider: "Dept. of Census & Statistics", what: "Paddy yield and area by district and season", resolution: "district, 1979-2026", inUse: false, usedFor: "Sample mode: placeholder yields and areas (real pipeline: yield model target and 2021 test)" },
+    { name: "DCS highland crop areas", provider: "Dept. of Census & Statistics", what: "Area of maize, green gram, cowpea, big onion, green chilli", resolution: "district, 2020-2021", inUse: false, usedFor: "Sample mode: placeholder areas (real pipeline: 2021 areas and market room)" },
+    { name: "HARTI weekly bulletin, week 35 2021", provider: "HARTI", what: "Farmgate and wholesale prices", resolution: "selected markets", inUse: false, usedFor: "Sample mode: placeholder prices (real pipeline: income estimates)" },
+    { name: "DCS mid-year population 2025", provider: "Dept. of Census & Statistics", what: "Population by district", resolution: "district", inUse: false, usedFor: "Sample mode: placeholder population (real pipeline: consumption needs)" },
+  ],
+};
+fs.writeFileSync(`${OUT}/datasets.json`, JSON.stringify(datasets));
+
 console.log("sample files written:", fs.readdirSync(OUT).join(", "), "| packs:", fs.readdirSync(`${OUT}/packs`).length);
